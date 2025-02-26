@@ -1,26 +1,53 @@
-type Props = {
-  selectedValue: string;
-  inputValue: string;
-  onSelect: (value: string) => void;
-  onChange: (value: string) => void;
-  onClearClick: () => void;
-};
+import { useEffect, useState } from 'react';
+import { Todo } from '../../types/Todo';
 
-export const TodoFilter: React.FC<Props> = ({
-  selectedValue,
-  inputValue,
-  onSelect,
-  onChange,
-  onClearClick,
+interface TodoFilterProps {
+  todos: Todo[];
+  setFilteredTodos: (filteredTodos: Todo[]) => void;
+}
+
+export const TodoFilter: React.FC<TodoFilterProps> = ({
+  todos,
+  setFilteredTodos,
 }) => {
+  const [status, setStatus] = useState('all');
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    const filtered = todos.filter(todo => {
+      const matchesStatus =
+        status === 'all' ||
+        (status === 'completed' ? todo.completed : !todo.completed);
+      const matchesQuery = todo.title
+        .toLowerCase()
+        .includes(query.toLowerCase());
+
+      return matchesStatus && matchesQuery;
+    });
+
+    setFilteredTodos(filtered);
+  }, [todos, status, query, setFilteredTodos]);
+
+  const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatus(event.target.value);
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(event.target.value);
+  };
+
+  const handleClearSearch = () => {
+    setQuery('');
+  };
+
   return (
     <form className="field has-addons">
       <p className="control">
         <span className="select">
           <select
             data-cy="statusSelect"
-            onChange={event => onSelect(event.target.value)}
-            value={selectedValue}
+            value={status}
+            onChange={handleStatusChange}
           >
             <option value="all">All</option>
             <option value="active">Active</option>
@@ -35,25 +62,23 @@ export const TodoFilter: React.FC<Props> = ({
           type="text"
           className="input"
           placeholder="Search..."
-          value={inputValue}
-          onChange={event => onChange(event.target.value)}
+          value={query}
+          onChange={handleSearchChange}
         />
         <span className="icon is-left">
           <i className="fas fa-magnifying-glass" />
         </span>
 
-        <span className="icon is-right" style={{ pointerEvents: 'all' }}>
-          {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-
-          {inputValue && (
+        {query && (
+          <span className="icon is-right" style={{ pointerEvents: 'all' }}>
             <button
               data-cy="clearSearchButton"
               type="button"
               className="delete"
-              onClick={onClearClick}
+              onClick={handleClearSearch}
             />
-          )}
-        </span>
+          </span>
+        )}
       </p>
     </form>
   );

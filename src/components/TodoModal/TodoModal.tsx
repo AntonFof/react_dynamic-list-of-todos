@@ -1,74 +1,68 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getUser } from '../../api';
 import { Loader } from '../Loader';
-import { getTodoUser } from '../../services/user';
-import { User } from '../../types/User';
 import { Todo } from '../../types/Todo';
 
-type Props = {
-  selectedTodo: Todo;
-  onClick: (selectedTodo: Todo | null) => void;
-};
+interface TodoModalProps {
+  todo: Todo;
+  closeModal: () => void;
+}
 
-export const TodoModal: React.FC<Props> = ({ selectedTodo, onClick }) => {
-  const [user, setUser] = useState<User | undefined>(undefined);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export const TodoModal: React.FC<TodoModalProps> = ({ todo, closeModal }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
+    if (!todo.userId) {
+      return;
+    }
 
-    getTodoUser(selectedTodo.userId)
+    setLoading(true);
+    getUser(todo.userId)
       .then(setUser)
-      .catch(() => {
-        setErrorMessage('Try again later');
-      })
+      .catch(() => setUser(null))
       .finally(() => setLoading(false));
-  }, []);
+  }, [todo.userId]);
 
   return (
     <div className="modal is-active" data-cy="modal">
-      <div className="modal-background" />
+      <div className="modal-background" onClick={closeModal} />
+      <div className="modal-card">
+        <header className="modal-card-head" data-cy="modal-header">
+          <div className="modal-card-title">Todo #{todo.id}</div>
+          <button
+            type="button"
+            className="delete"
+            data-cy="modal-close"
+            onClick={closeModal}
+          />
+        </header>
 
-      {loading && !errorMessage ? (
-        <Loader />
-      ) : (
-        <div className="modal-card">
-          <header className="modal-card-head">
-            <div
-              className="modal-card-title has-text-weight-medium"
-              data-cy="modal-header"
-            >
-              Todo #{selectedTodo.id}
-            </div>
-
-            {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-            <button
-              type="button"
-              className="delete"
-              data-cy="modal-close"
-              onClick={() => onClick(null)}
-            />
-          </header>
-
-          <div className="modal-card-body">
-            <p className="block" data-cy="modal-title">
-              {selectedTodo.title}
-            </p>
-
-            <p className="block" data-cy="modal-user">
-              {selectedTodo.completed ? (
-                <strong className="has-text-success">Done</strong>
-              ) : (
-                <strong className="has-text-danger">Planned</strong>
-              )}
-
+        <div className="modal-card-body">
+          {loading ? (
+            <Loader data-cy="loader" />
+          ) : (
+            <>
+              <p className="block">{todo.title}</p>
+              <p
+                className={
+                  todo.completed ? 'has-text-success' : 'has-text-danger'
+                }
+              >
+                {todo.completed ? 'Done' : 'Planned'}
+              </p>
               {' by '}
-
-              <a href="mailto:Sincere@april.biz">{user?.name}</a>
-            </p>
-          </div>
+              <a href={`mailto:${user?.email}`}>{user?.name}</a>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
